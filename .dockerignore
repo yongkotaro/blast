@@ -1,0 +1,6 @@
+*
+!Dockerfile
+!requirements.lock
+!selector.py
+!coverage_plugin.py
+!build_maps.py
