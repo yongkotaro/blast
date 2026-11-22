@@ -33,6 +33,16 @@ diff --git a/sqlglot/b.py b/sqlglot/b.py
         self.assertEqual(choose_workers({0, 1}, {0: 1000, 1: 1000}), [[0, 1]])
         self.assertEqual(len(choose_workers({0, 1}, {0: 10000, 1: 10000})), 2)
 
+    def test_shared_optimizer_fallback(self):
+        ids = {'tests/test_optimizer.py::T::test_optimize': 1,
+               'tests/test_executor.py::T::test_execute_tpcds': 2}
+        files = {'tests/test_optimizer.py': {next(iter(ids))},
+                 'tests/test_executor.py': {'tests/test_executor.py::T::test_execute_tpcds'}}
+        maps = {'lines': {}, 'files': {}, 'functions': {}, 'imports': {}}
+        change = [('sqlglot/optimizer/eliminate_joins.py',
+                   'sqlglot/optimizer/eliminate_joins.py', {68}, set())]
+        self.assertEqual(select(change, maps, ids, files), {1, 2})
+
     def test_fixture_exact_test_name(self):
         maps = {'lines': {}, 'files': {}, 'functions': {}, 'imports': {}}
         ids = {'tests/test_optimizer.py::T::test_simplify': 1,

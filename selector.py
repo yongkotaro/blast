@@ -90,8 +90,11 @@ def select(records, maps, by_id, by_file):
         if path.startswith('tests/fixtures/'):
             stem = Path(path).stem
             ids.update(tid for tid in by_id if tid.split('::')[-1] == 'test_' + stem)
-            if not ids:
-                ids.update(tid for tid in by_id if tid.startswith('tests/test_optimizer.py::') and stem in tid)
+            # Fixture names are sometimes plural while their test method is
+            # singular (pushdown_projections -> test_pushdown_projection).
+            variants = {stem, stem.removesuffix('s')}
+            ids.update(tid for tid in by_id if tid.startswith('tests/test_optimizer.py::')
+                       and tid.split('::')[-1] in {'test_' + v for v in variants})
             if not ids:
                 ids.update(by_file.get('tests/test_optimizer.py', ()))
         elif path.startswith('tests/'):
@@ -121,6 +124,15 @@ def select(records, maps, by_id, by_file):
                 for source, deps in maps['imports'].items():
                     if source.startswith('tests/') and any(d == module or d.startswith(module + '.') for d in deps):
                         ids.update(by_file.get(source, ()))
+            # Tracing starts after collection: imports and class attributes
+            # are outside per-test coverage. These suites exercise the shared
+            # optimizer and dialect paths, including branches newly enabled
+            # by the patch that baseline line coverage cannot observe.
+            if path.startswith(('sqlglot/optimizer/', 'sqlglot/parsers/',
+                                'sqlglot/dialects/')) or path in ('sqlglot/serde.py', 'sqlglot/transforms.py'):
+                ids.update(by_file.get('tests/test_optimizer.py', ()))
+            if path.startswith('sqlglot/optimizer/') or path == 'sqlglot/serde.py':
+                ids.update(by_file.get('tests/test_executor.py', ()))
             base = Path(path).stem
             if path.startswith(('sqlglot/dialects/', 'sqlglot/parsers/', 'sqlglot/generators/')):
                 dialect = 'tests/dialects/test_' + base + '.py'
